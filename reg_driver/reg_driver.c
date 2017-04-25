@@ -24,10 +24,10 @@ static int driver_init(void)
 		printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
 		return err;
 	}
-	major_number = major(dev_num);
-	minor_number = minor(dev_num);
+	//major_number = major(dev_num);
+	//minor_number = minor(dev_num);
 	
-	p_vircdev = cdev_alloc(void);
+	p_vircdev = cdev_alloc();
 	p_vircdev->owner = DEVICE_NAME; //pas trop sur que ca soit DEVICE_NAME ici mais g pas d'autre idées
 	cdev_add(&p_vircdev, dev_num, NB_MINOR_ID); 
 
