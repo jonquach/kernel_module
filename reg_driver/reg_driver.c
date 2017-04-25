@@ -28,10 +28,9 @@ static int driver_init(void)
 	//minor_number = minor(dev_num);
 	
 	p_vircdev = cdev_alloc();
-	p_vircdev->owner = DEVICE_NAME; //pas trop sur que ca soit DEVICE_NAME ici mais g pas d'autre idées
-	cdev_add(&p_vircdev, dev_num, NB_MINOR_ID); 
+	p_vircdev->owner = THIS_MODULE;
+	err = cdev_add(p_vircdev, dev_num, NB_MINOR_ID); 
 
-	// ...
 
 	if (err < 0) {
 		printk(KERN_ALERT "%s: unable to add cdev to kernel\n", DEVICE_NAME);
@@ -45,7 +44,7 @@ static int driver_init(void)
 static void driver_cleanup(void)
 {
   unregister_chrdev_region(dev_num, NB_MINOR_ID);
-  cdev_del(&p_vircdev); 
+  cdev_del(p_vircdev); 
   
   printk(KERN_ALERT "Module %s successfully unloaded\n", DEVICE_NAME);
 }
