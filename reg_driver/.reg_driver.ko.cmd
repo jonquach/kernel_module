@@ -1,0 +1,1 @@
+cmd_/home/etu1/Documents/TP4/1/reg_driver/reg_driver.ko := ld -r -m elf_i386 -T ./scripts/module-common.lds --build-id  -o /home/etu1/Documents/TP4/1/reg_driver/reg_driver.ko /home/etu1/Documents/TP4/1/reg_driver/reg_driver.o /home/etu1/Documents/TP4/1/reg_driver/reg_driver.mod.o

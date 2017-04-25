@@ -1,0 +1,1 @@
+cmd_/home/etu1/Documents/TP4/1/helloworld/helloworld.ko := ld -r -m elf_i386 -T ./scripts/module-common.lds --build-id  -o /home/etu1/Documents/TP4/1/helloworld/helloworld.ko /home/etu1/Documents/TP4/1/helloworld/helloworld.o /home/etu1/Documents/TP4/1/helloworld/helloworld.mod.o
