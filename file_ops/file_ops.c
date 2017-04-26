@@ -8,6 +8,7 @@
 #define DEVICE_NAME "my_virtual_device"
 #define FIRST_MINOR 0
 #define NB_MINOR_ID 1
+#define DISK_SIZE 1000
 
 // The virtual device using RAM
 struct CBuffDevice {
@@ -27,21 +28,25 @@ int minor_number;
 
 int device_open(struct inode *inode, struct file *filp)
 {
+  printk(KERN_ALERT "OPEN BITCH\n");
   return 0;
 }
 
 int device_release(struct inode *inode, struct file *filp)
 {
+  printk(KERN_ALERT "RELEASE BITCH\n");
   return 0;
 }
 
 ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, loff_t* f_pos)
 {
+  printk(KERN_ALERT "WRITE BITCH\n");
   return 0;
 }
 
 ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* f_pos)
 {
+  printk(KERN_ALERT "READ BITCH\n");
   return 0;
 }
 
@@ -59,7 +64,7 @@ static int driver_init(void)
   int err;
 
   fops.open = device_open;
-  fops.realease = device_release;
+  fops.release = device_release;
   fops.write = device_write;
   fops.read = device_read;
   
@@ -70,6 +75,8 @@ static int driver_init(void)
     printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
     return err;
   }
+
+  printk(KERN_ALERT "lol = %d\n", MAJOR(dev_num));
 
   p_vircdev = cdev_alloc();
   p_vircdev->owner = THIS_MODULE;
