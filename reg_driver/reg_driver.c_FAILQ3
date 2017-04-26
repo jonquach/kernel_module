@@ -1,0 +1,79 @@
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/types.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+
+struct cdev * p_vircdev;
+struct file_operations *fops;
+dev_t dev_num;
+int major_number;
+int minor_number;
+
+#define DEVICE_NAME "my_virtual_device"
+#define FIRST_MINOR 0
+#define NB_MINOR_ID 1
+
+static int driver_init(void) 
+{
+	int err;
+	fops = malloc(sizeof(fops));
+
+	fops->owner = THIS_MODULE;
+	fops->open = device_open,
+	fops->release = device_release,
+	fops->write = device_write,
+	fops->read = device_read,   
+	
+	
+	err = alloc_chrdev_region(&dev_num, FIRST_MINOR, NB_MINOR_ID, DEVICE_NAME); 
+	//register_chrdev(unsigned char major, const char *name, struct file_operations *fops);
+	
+	if (err < 0) {
+		printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
+		return err;
+	}
+	//major_number = major(dev_num);
+	//minor_number = minor(dev_num);
+	
+	p_vircdev = cdev_alloc();
+	p_vircdev->owner = THIS_MODULE;
+	p_vircdev->ops = fops;
+	err = cdev_add(p_vircdev, dev_num, NB_MINOR_ID); 
+
+
+	if (err < 0) {
+		printk(KERN_ALERT "%s: unable to add cdev to kernel\n", DEVICE_NAME);
+		return err;
+	}
+        printk(KERN_ALERT "%s: module successfully loaded\n", DEVICE_NAME);
+	printk(KERN_INFO "\tuse \"mknod /dev/%s c %d %d\" for device file", DEVICE_NAME, major_number, minor_number);
+	return 0;
+}
+
+static void driver_cleanup(void)
+{
+  unregister_chrdev_region(dev_num, NB_MINOR_ID);
+  cdev_del(p_vircdev); 
+  
+  printk(KERN_ALERT "Module %s successfully unloaded\n", DEVICE_NAME);
+}
+
+
+int device_open(struct inode *inode, struct file *filp)
+{
+  printk(KERN_ALERT "my_virtual_device: opened device on inode %d\n", inode_sauvage);
+}
+
+int device_release(struct inode *inode, struct file *filp)
+{
+  printk(KERN_ALERT "my_virtual_device: released device on inode %d", inode_sauvage);
+}
+
+ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, loff_t* f_pos)
+{
+  printk(KERN_ALERT "%s: head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size); 
+}
+
+module_init(driver_init);
+module_exit(driver_cleanup);
