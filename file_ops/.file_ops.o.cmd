@@ -659,6 +659,15 @@ deps_/home/etu1/Documents/TP4/1/file_ops/file_ops.o := \
   arch/x86/include/asm/smap.h \
     $(wildcard include/config/x86/smap.h) \
   arch/x86/include/asm/uaccess_32.h \
+  include/linux/slab.h \
+    $(wildcard include/config/debug/slab.h) \
+    $(wildcard include/config/failslab.h) \
+    $(wildcard include/config/slab.h) \
+    $(wildcard include/config/slub.h) \
+    $(wildcard include/config/slob.h) \
+  include/linux/kmemleak.h \
+    $(wildcard include/config/debug/kmemleak.h) \
+  include/linux/kasan.h \
 
 /home/etu1/Documents/TP4/1/file_ops/file_ops.o: $(deps_/home/etu1/Documents/TP4/1/file_ops/file_ops.o)
 
