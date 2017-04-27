@@ -15,30 +15,28 @@ int minor_number;
 
 static int driver_init(void) 
 {
-	int err;
-
-	err = alloc_chrdev_region(&dev_num, FIRST_MINOR, NB_MINOR_ID, DEVICE_NAME); 
-	//register_chrdev(unsigned char major, const char *name, struct file_operations *fops);
-	
-	if (err < 0) {
-		printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
-		return err;
-	}
-	//major_number = major(dev_num);
-	//minor_number = minor(dev_num);
-	
-	p_vircdev = cdev_alloc();
-	p_vircdev->owner = THIS_MODULE;
-	err = cdev_add(p_vircdev, dev_num, NB_MINOR_ID); 
-
-
-	if (err < 0) {
-		printk(KERN_ALERT "%s: unable to add cdev to kernel\n", DEVICE_NAME);
-		return err;
-	}
-        printk(KERN_ALERT "%s: module successfully loaded\n", DEVICE_NAME);
-	printk(KERN_INFO "\tuse \"mknod /dev/%s c %d %d\" for device file", DEVICE_NAME, major_number, minor_number);
-	return 0;
+  int err;
+  
+  err = alloc_chrdev_region(&dev_num, FIRST_MINOR, NB_MINOR_ID, DEVICE_NAME); 
+  
+  if (err < 0) {
+    printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
+    return err;
+  }
+  
+  p_vircdev = cdev_alloc();
+  p_vircdev->owner = THIS_MODULE;
+  err = cdev_add(p_vircdev, dev_num, NB_MINOR_ID); 
+  major_number = MAJOR(dev_num);
+  minor_number = MINOR(dev_num);
+  
+  if (err < 0) {
+    printk(KERN_ALERT "%s: unable to add cdev to kernel\n", DEVICE_NAME);
+    return err;
+  }
+  printk(KERN_ALERT "%s: module successfully loaded\n", DEVICE_NAME);
+  printk(KERN_INFO "\tuse \"mknod /dev/%s c %d %d\" for device file", DEVICE_NAME, major_number, minor_number);
+  return 0;
 }
 
 static void driver_cleanup(void)
