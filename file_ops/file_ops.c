@@ -50,6 +50,9 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   int nb;
   char *tampon;
 
+  //  if (virtual_device.size + count > DISK_SIZE)
+  //return -ENOSPC;
+
   i = 0;
   j = virtual_device.tail;
   nb = 0;
@@ -65,7 +68,12 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
       virtual_device.data[j] = tampon[i];
       i++;
       j++;
-      nb++;
+      nb++;      
+      if (j > DISK_SIZE)
+	{
+	  virtual_device.tail = 0;
+	  j = 0;
+	}
     }
   up(&virtual_device.sem);
   virtual_device.tail = j;
@@ -86,7 +94,7 @@ ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* 
 
   nb = 0;
   i = 0;
-  j =  virtual_device.head;
+  j = virtual_device.head;
   kStr = kmalloc((count * sizeof(char) + 1), GFP_KERNEL);
   printk(KERN_ALERT "READ BITCH\n");
   down_interruptible(&virtual_device.sem);
@@ -98,6 +106,11 @@ ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* 
       i++;
       j++;
       nb++;
+      if (j > DISK_SIZE)
+	{
+	  virtual_device.head = 0;
+	  j = 0;
+	}
     }
   up(&virtual_device.sem);
   kStr[i] = '\0';
