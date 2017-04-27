@@ -12,7 +12,7 @@
 #define FIRST_MINOR 0
 #define NB_MINOR_ID 1
 //#define DISK_SIZE 1024*1024
-#define DISK_SIZE 20
+#define DISK_SIZE 1024*1024
 
 // The virtual device using RAM
 struct CBuffDevice {
@@ -55,7 +55,7 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   //save = virtual_device.head;
    printk(KERN_ALERT "%s:(celui du haut) head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
 
-   if (virtual_device.size + count > DISK_SIZE)
+   if (virtual_device.size == DISK_SIZE)
      return -ENOSPC;
 
   i = 0;
@@ -80,6 +80,7 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
       j++;
       printk(KERN_ALERT "ici 3,3 = %lu\n", virtual_device.head);
       nb++;
+      
       printk(KERN_ALERT "ici 3,4 = %lu\n", virtual_device.head);
       if (j > DISK_SIZE - 1)
 	{
@@ -88,6 +89,8 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
 	  j = 0;
 	  printk(KERN_ALERT "ici 4,1 = %lu\n", virtual_device.head);
 	}
+      if ((virtual_device.size + nb)  == DISK_SIZE)
+	break;
     }
   printk(KERN_ALERT "ici 5 = %lu\n", virtual_device.head);
   //virtual_device.head = save;
@@ -97,13 +100,6 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   printk(KERN_ALERT "ici 6 = %lu\n", virtual_device.head);
   virtual_device.size += nb;
   (*f_pos) += nb;
-
-  i = 0;
-  while (i < virtual_device.size)
-    {
-      printk(KERN_ALERT "data des enfers = %c\n", virtual_device.data[i]);
-      i++;
-    }
   
   printk(KERN_ALERT "%s:(celui du bas)  head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
   return nb;
