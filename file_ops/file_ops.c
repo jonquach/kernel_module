@@ -89,6 +89,7 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   virtual_device.tail = j;
   virtual_device.size += nb;
   (*f_pos) += nb;
+  printk(KERN_ALERT "%s: head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size); 
   return nb;
 }
 
