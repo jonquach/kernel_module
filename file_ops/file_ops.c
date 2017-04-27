@@ -11,7 +11,8 @@
 #define DEVICE_NAME "my_virtual_device"
 #define FIRST_MINOR 0
 #define NB_MINOR_ID 1
-#define DISK_SIZE 1024*1024
+//#define DISK_SIZE 1024*1024
+#define DISK_SIZE 20
 
 // The virtual device using RAM
 struct CBuffDevice {
@@ -49,38 +50,62 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   int j;
   int nb;
   char *tampon;
+  //int save;
+ 
+  //save = virtual_device.head;
+   printk(KERN_ALERT "%s:(celui du haut) head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
 
-  //  if (virtual_device.size + count > DISK_SIZE)
-  //return -ENOSPC;
+   if (virtual_device.size + count > DISK_SIZE)
+     return -ENOSPC;
 
   i = 0;
   j = virtual_device.tail;
   nb = 0;
-  tampon = kmalloc(count * sizeof(char), GFP_KERNEL);  
+  tampon = kmalloc(count * sizeof(char), GFP_KERNEL);
+  printk(KERN_ALERT "ici 1 = %lu\n", virtual_device.head);
   if (copy_from_user(tampon, bufUserData, count) != 0)
     {
       return -EFAULT;
     }
+  printk(KERN_ALERT "ici 2 = %lu\n", virtual_device.head);
 
   down_interruptible(&virtual_device.sem);
   while (i < count)
     {
+      printk(KERN_ALERT "ici 3 = %lu (j = %c, i = %c) et %d\n", virtual_device.head, virtual_device.data[j], tampon[i], j);
       virtual_device.data[j] = tampon[i];
+      printk(KERN_ALERT "ici 3,1 = %lu (j = %c, i = %c) et %d\n", virtual_device.head, virtual_device.data[j], tampon[i], j); 
       i++;
+      printk(KERN_ALERT "ici 3,2 = %lu\n", virtual_device.head);
       j++;
-      nb++;      
-      if (j > DISK_SIZE)
+      printk(KERN_ALERT "ici 3,3 = %lu\n", virtual_device.head);
+      nb++;
+      printk(KERN_ALERT "ici 3,4 = %lu\n", virtual_device.head);
+      if (j > DISK_SIZE - 1)
 	{
+	  printk(KERN_ALERT "ici 4 = %lu\n", virtual_device.head);
 	  virtual_device.tail = 0;
 	  j = 0;
+	  printk(KERN_ALERT "ici 4,1 = %lu\n", virtual_device.head);
 	}
     }
+  printk(KERN_ALERT "ici 5 = %lu\n", virtual_device.head);
+  //virtual_device.head = save;
+  //virtual_device.data[save] = charSaved;
   up(&virtual_device.sem);
   virtual_device.tail = j;
+  printk(KERN_ALERT "ici 6 = %lu\n", virtual_device.head);
   virtual_device.size += nb;
   (*f_pos) += nb;
 
-  printk(KERN_ALERT "%s: head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
+  i = 0;
+  while (i < virtual_device.size)
+    {
+      printk(KERN_ALERT "data des enfers = %c\n", virtual_device.data[i]);
+      i++;
+    }
+  
+  printk(KERN_ALERT "%s:(celui du bas)  head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
   return nb;
 }
 
@@ -91,36 +116,41 @@ ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* 
   int i;
   int j;
   char *kStr;
+  printk(KERN_ALERT "READ BITCH\n");
 
   nb = 0;
   i = 0;
   j = virtual_device.head;
-  kStr = kmalloc((count * sizeof(char) + 1), GFP_KERNEL);
-  printk(KERN_ALERT "READ BITCH\n");
+  printk(KERN_ALERT "(HAUT) JJJJJJ= %d, [%c]\n", j, virtual_device.data[j]);
+  kStr = kmalloc((count * sizeof(char)), GFP_KERNEL);
   down_interruptible(&virtual_device.sem);
   
   while (i < count && i < virtual_device.size)
     {
+      printk(KERN_ALERT "(BAS) JJJJJJ= %d, [%c]\n", j, virtual_device.data[j]);
       kStr[i] = virtual_device.data[j];
+      printk(KERN_ALERT "kStr[i] = %d, plop = %c\n", kStr[i], virtual_device.data[j]);
       virtual_device.data[j] = '\0';
       i++;
       j++;
+      
       nb++;
-      if (j > DISK_SIZE)
+      if (j > DISK_SIZE - 1)
 	{
 	  virtual_device.head = 0;
 	  j = 0;
 	}
     }
   up(&virtual_device.sem);
-  kStr[i] = '\0';
-  virtual_device.head += nb;
+  //kStr[i] = '\0';
+  virtual_device.head = j;
   virtual_device.size -= nb;
   if (copy_to_user(bufUserData, kStr, nb) != 0)
     {
       return -EFAULT;
     }
   (*f_pos) += nb;
+  printk(KERN_ALERT "%s: READ ENCULE head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
   return nb;
 }
 
