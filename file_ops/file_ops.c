@@ -11,7 +11,6 @@
 #define DEVICE_NAME "my_virtual_device"
 #define FIRST_MINOR 0
 #define NB_MINOR_ID 1
-//#define DISK_SIZE 1024*1024
 #define DISK_SIZE 1024*1024
 
 // The virtual device using RAM
@@ -29,82 +28,71 @@ dev_t dev_num;
 int major_number;
 int minor_number;
 
-
+//Méthode appelée lors de l'ouverture du périphérique
 int device_open(struct inode *inode, struct file *filp)
 {
   printk(KERN_ALERT "%s: opened device on inode %lu\n", DEVICE_NAME, inode->i_ino); 
-  printk(KERN_ALERT "OPEN BITCH\n");
   return 0;
 }
 
+//Méthode appelée lors de la fermeture du périphérique
 int device_release(struct inode *inode, struct file *filp)
 {
   printk(KERN_ALERT "%s: released device on inode %lu\n", DEVICE_NAME, inode->i_ino);
-  printk(KERN_ALERT "RELEASE BITCH\n");
   return 0;
 }
 
+//Méthode appelée lors d'une opération d'écriture sur le périphérique
 ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, loff_t* f_pos)
 {
   int i;
   int j;
   int nb;
   char *tampon;
-  //int save;
- 
-  //save = virtual_device.head;
-   printk(KERN_ALERT "%s:(celui du haut) head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
 
-   if (virtual_device.size == DISK_SIZE)
-     return -ENOSPC;
+  //Verification que l'on peut lire au moins un caractère
+  if (virtual_device.size == DISK_SIZE)
+    return -ENOSPC;
 
   i = 0;
   j = virtual_device.tail;
   nb = 0;
+  //Allocation du tampon pour copy_from_user
   tampon = kmalloc(count * sizeof(char), GFP_KERNEL);
-  printk(KERN_ALERT "ici 1 = %lu\n", virtual_device.head);
   if (copy_from_user(tampon, bufUserData, count) != 0)
     {
       return -EFAULT;
     }
-  printk(KERN_ALERT "ici 2 = %lu\n", virtual_device.head);
 
+  //Debut de la section critique
   down_interruptible(&virtual_device.sem);
   while (i < count)
     {
-      printk(KERN_ALERT "ici 3 = %lu (j = %c, i = %c) et %d\n", virtual_device.head, virtual_device.data[j], tampon[i], j);
+      //Copie du buffer dans le disque
       virtual_device.data[j] = tampon[i];
-      printk(KERN_ALERT "ici 3,1 = %lu (j = %c, i = %c) et %d\n", virtual_device.head, virtual_device.data[j], tampon[i], j); 
       i++;
-      printk(KERN_ALERT "ici 3,2 = %lu\n", virtual_device.head);
       j++;
-      printk(KERN_ALERT "ici 3,3 = %lu\n", virtual_device.head);
       nb++;
-      
-      printk(KERN_ALERT "ici 3,4 = %lu\n", virtual_device.head);
+      //Fin du disque. Retour au debut (buffer circulaire)
       if (j > DISK_SIZE - 1)
 	{
-	  printk(KERN_ALERT "ici 4 = %lu\n", virtual_device.head);
 	  virtual_device.tail = 0;
 	  j = 0;
-	  printk(KERN_ALERT "ici 4,1 = %lu\n", virtual_device.head);
 	}
+      //Plus de place sur le disque
       if ((virtual_device.size + nb)  == DISK_SIZE)
 	break;
     }
-  printk(KERN_ALERT "ici 5 = %lu\n", virtual_device.head);
-  //virtual_device.head = save;
-  //virtual_device.data[save] = charSaved;
+  //Fin de la section critique
   up(&virtual_device.sem);
+  
   virtual_device.tail = j;
-  printk(KERN_ALERT "ici 6 = %lu\n", virtual_device.head);
   virtual_device.size += nb;
   (*f_pos) += nb;
-  
-  printk(KERN_ALERT "%s:(celui du bas)  head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
   return nb;
 }
 
+//Méthode appelée lors d'une opération de lecture sur le périphérique
 ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* f_pos)
 {
 
@@ -112,33 +100,32 @@ ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* 
   int i;
   int j;
   char *kStr;
-  printk(KERN_ALERT "READ BITCH\n");
-
+  
   nb = 0;
   i = 0;
   j = virtual_device.head;
-  printk(KERN_ALERT "(HAUT) JJJJJJ= %d, [%c]\n", j, virtual_device.data[j]);
+  //Allocation du tampon pour copy_to_user
   kStr = kmalloc((count * sizeof(char)), GFP_KERNEL);
-  down_interruptible(&virtual_device.sem);
-  
+  //Debut de la zone critique
+  down_interruptible(&virtual_device.sem);  
   while (i < count && i < virtual_device.size)
     {
-      printk(KERN_ALERT "(BAS) JJJJJJ= %d, [%c]\n", j, virtual_device.data[j]);
+      //Copie dans le tampon
       kStr[i] = virtual_device.data[j];
-      printk(KERN_ALERT "kStr[i] = %d, plop = %c\n", kStr[i], virtual_device.data[j]);
       virtual_device.data[j] = '\0';
       i++;
       j++;
-      
       nb++;
+      //Fin du disue retour au debut (buffer circulaire)
       if (j > DISK_SIZE - 1)
 	{
 	  virtual_device.head = 0;
 	  j = 0;
 	}
     }
+  //Fin de la zone critique
   up(&virtual_device.sem);
-  //kStr[i] = '\0';
+  
   virtual_device.head = j;
   virtual_device.size -= nb;
   if (copy_to_user(bufUserData, kStr, nb) != 0)
@@ -146,7 +133,6 @@ ssize_t device_read(struct file* filp, char* bufUserData, size_t count, loff_t* 
       return -EFAULT;
     }
   (*f_pos) += nb;
-  printk(KERN_ALERT "%s: READ ENCULE head:%lu tail:%lu size:%lu\n", DEVICE_NAME, virtual_device.head, virtual_device.tail, virtual_device.size);  
   return nb;
 }
 
@@ -159,26 +145,26 @@ struct file_operations fops = {
   .read = NULL,  
 };
 
+//méthode appelée lors de l'initialisation du pilote
 static int driver_init(void) 
 {
   int err;
   int i;
 
+  //Routage des fonctions
   fops.open = device_open;
   fops.release = device_release;
   fops.write = device_write;
   fops.read = device_read;
   sema_init(&virtual_device.sem, 1);
-  
-  err = alloc_chrdev_region(&dev_num, FIRST_MINOR, NB_MINOR_ID, DEVICE_NAME);
-  
+
+  //Allocation du périphérique
+  err = alloc_chrdev_region(&dev_num, FIRST_MINOR, NB_MINOR_ID, DEVICE_NAME);  
   
   if (err < 0) {
     printk(KERN_ALERT "%s: failed to obtain device numbers\n", DEVICE_NAME);
     return err;
   }
-
-  printk(KERN_ALERT "lol = %d\n", MAJOR(dev_num));
 
   p_vircdev = cdev_alloc();
   p_vircdev->owner = THIS_MODULE;
@@ -200,17 +186,21 @@ static int driver_init(void)
   virtual_device.head = 0;
   virtual_device.tail = 0;
   virtual_device.size = 0;
+
+  //Recuperation du minor et major
+  major_number = MAJOR(dev_num);
+  minor_number = MINOR(dev_num);
   
   printk(KERN_ALERT "%s: module successfully loaded\n", DEVICE_NAME);
   printk(KERN_INFO "\tuse \"mknod /dev/%s c %d %d\" for device file", DEVICE_NAME, major_number, minor_number);
   return 0;
 }
 
+//Méthode appelée lors de la suppression du périphérique
 static void driver_cleanup(void)
 {
   unregister_chrdev_region(dev_num, NB_MINOR_ID);
   cdev_del(p_vircdev);
-  //  sem_destroy(&virtual_device.sem);
 
   printk(KERN_ALERT "Module %s successfully unloaded\n", DEVICE_NAME);
   
