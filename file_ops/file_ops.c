@@ -50,7 +50,7 @@ ssize_t device_write(struct file* filp, const char* bufUserData, size_t count, l
   int nb;
   char *tampon;
 
-  //Verification que l'on peut lire au moins un caractère
+  //Verification que l'on peut écrire au moins un caractère
   if (virtual_device.size == DISK_SIZE)
     return -ENOSPC;
 
